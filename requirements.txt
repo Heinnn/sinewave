@@ -2,5 +2,5 @@ streamlit
 numpy
 matplotlib
 pandas
-tvdatafeed==2.1.0
+git+https://github.com/asimov-academy/Asimov_TV_connector.git
 highcharts-stock
