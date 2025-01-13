@@ -2,5 +2,5 @@ streamlit
 numpy
 matplotlib
 pandas
-git+https://github.com/rongardF/tvdatafeed.git
+tvdatafeed==2.1.0
 highcharts-stock
