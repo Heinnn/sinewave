@@ -44,6 +44,9 @@ with col_inputs:
     )
     st.write(f"**Current π-multiplier**: {pi_multiplier} → effectively using {pi_multiplier}π in each term.")
 
+    # NEW: Checkbox to show/hide sub-waves
+    show_subwaves = st.checkbox("Show sub waves", value=True, help="Uncheck to hide individual sub-waves.")
+
     st.markdown("---")
 
     # --- Second Plot (tvDatafeed) Settings ---
@@ -61,10 +64,10 @@ with col_inputs:
         # "30 minutes": Interval.in_30_minute,
         # "1 hour": Interval.in_1_hour,
         # "2 hours": Interval.in_2_hour,
-        "4 hours": Interval.in_4_hour,
-        "1 day": Interval.in_daily,
-        "1 week": Interval.in_weekly,
-        "1 month": Interval.in_monthly
+        "4H": Interval.in_4_hour,
+        "Day": Interval.in_daily,
+        "Week": Interval.in_weekly,
+        "Month": Interval.in_monthly
     }
     intervals_list = list(interval_map.keys())
 
@@ -103,12 +106,16 @@ with col_plots:
     # Plot with matplotlib
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    ax.plot(x, wave1, label="64 sin(α_red + mπ·x/64)",   alpha=0.4, color="red")
-    ax.plot(x, wave2, label="32 sin(α_green + mπ·x/32)", alpha=0.4, color="green")
-    ax.plot(x, wave3, label="16 sin(α_blue + mπ·x/16)",  alpha=0.4, color="blue")
-    ax.plot(x, wave4, label="8 sin(α_yellow + mπ·x/8)",  alpha=0.4, color="orange")
+    # Only plot sub-waves if user wants to see them
+    if show_subwaves:
+        ax.plot(x, wave1, label="64 sin(α_red + mπ·x/64)",   alpha=0.4, color="red")
+        ax.plot(x, wave2, label="32 sin(α_green + mπ·x/32)", alpha=0.4, color="green")
+        ax.plot(x, wave3, label="16 sin(α_blue + mπ·x/16)",  alpha=0.4, color="blue")
+        ax.plot(x, wave4, label="8 sin(α_yellow + mπ·x/8)",  alpha=0.4, color="orange")
 
+    # Always plot the merged wave
     ax.plot(x, merged_wave, label="Sum of all waves", color="magenta", linewidth=2)
+
     ax.set_xlabel("x (0 to 64)")
     ax.set_ylabel("Amplitude")
     ax.set_title(f"Sine Waves with {pi_multiplier}π Factor")
@@ -148,7 +155,7 @@ with col_plots:
     # Highcharts config
     as_dict = {
         'rangeSelector': {
-            'selected': 2
+            'selected': 4
         },
         'title': {
             'text': f'{symbol} {exchange} Chart'
@@ -168,15 +175,10 @@ with col_plots:
     # Construct Highcharts object
     chart = Chart.from_options(as_dict)
 
-    # Instead of chart.html_content, use get_html() 
+    # Use to_js_literal and embed manually
     js_code = chart.to_js_literal()
-
     js_code = js_code.replace("Highcharts.stockChart(null", "Highcharts.stockChart('container'")
 
-    # 3) Build HTML template:
-    #    - load Highcharts script
-    #    - add <div id="container"></div>
-    #    - inject the JavaScript snippet
     html_template = f"""
     <!DOCTYPE html>
     <html>
@@ -194,5 +196,4 @@ with col_plots:
     </html>
     """
 
-    # 4) Embed the resulting HTML in Streamlit
     st.components.v1.html(html_template, height=700, scrolling=True)
