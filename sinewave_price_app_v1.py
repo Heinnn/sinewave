@@ -128,7 +128,7 @@ with col_plots:
     #
     # ------------------------ SECOND PLOT (tvDatafeed) -------------------------
     #
-    st.subheader(f"Financial Chart: {symbol} / {exchange}, Interval = {user_interval}")
+    # st.subheader(f"Financial Chart: {symbol} / {exchange}, Interval = {user_interval}")
 
     # Initialize tvDatafeed (credentials not shown here; ensure your environment is set up)
     tv = TvDatafeed()
