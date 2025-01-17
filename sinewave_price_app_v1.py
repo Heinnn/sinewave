@@ -58,12 +58,6 @@ with col_inputs:
 
     # Interval mapping
     interval_map = {
-        # "1 minute": Interval.in_1_minute,
-        # "5 minutes": Interval.in_5_minute,
-        # "15 minutes": Interval.in_15_minute,
-        # "30 minutes": Interval.in_30_minute,
-        # "1 hour": Interval.in_1_hour,
-        # "2 hours": Interval.in_2_hour,
         "4H": Interval.in_4_hour,
         "Day": Interval.in_daily,
         "Week": Interval.in_weekly,
@@ -72,7 +66,7 @@ with col_inputs:
     intervals_list = list(interval_map.keys())
 
     # Let user select the desired interval
-    user_interval = st.selectbox("Select Interval", intervals_list, index=3)  # default: '1 day'
+    user_interval = st.selectbox("Select Interval", intervals_list, index=3)  # default: 'Day'
     selected_interval = interval_map[user_interval]
 
     # Number of bars
@@ -116,6 +110,10 @@ with col_plots:
     # Always plot the merged wave
     ax.plot(x, merged_wave, label="Sum of all waves", color="magenta", linewidth=2)
 
+    # Make the y-axis appear on the right side
+    ax.yaxis.set_label_position("right")
+    ax.yaxis.tick_right()
+
     ax.set_xlabel("x (0 to 64)")
     ax.set_ylabel("Amplitude")
     ax.set_title(f"Sine Waves with {pi_multiplier}π Factor")
@@ -128,9 +126,6 @@ with col_plots:
     #
     # ------------------------ SECOND PLOT (tvDatafeed) -------------------------
     #
-    # st.subheader(f"Financial Chart: {symbol} / {exchange}, Interval = {user_interval}")
-
-    # Initialize tvDatafeed (credentials not shown here; ensure your environment is set up)
     tv = TvDatafeed()
 
     # Retrieve data
@@ -159,6 +154,9 @@ with col_plots:
         },
         'title': {
             'text': f'{symbol} {exchange} Chart'
+        },
+        'xAxis': {
+            'overscroll': 2678400000 
         },
         'navigator': {
             'enabled': True
