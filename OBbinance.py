@@ -1,6 +1,5 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import json
 import pandas as pd
 from binance.client import Client  # Assuming you have imported the Binance client
 from binance.enums import HistoricalKlinesType
