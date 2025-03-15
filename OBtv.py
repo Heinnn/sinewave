@@ -238,9 +238,9 @@ chart_options = {
     'title': {
         'text': f'{selected_ticker}'
     },
-    'xAxis': {
-        'overscroll': interval_map[selected_timeframe] * 30,
-    },
+    # 'xAxis': {
+        # 'overscroll': interval_map[selected_timeframe] * 30,
+    # },
     'yAxis': plotLines if selected_intervals else '',
     'navigator': {
         'enabled': True
