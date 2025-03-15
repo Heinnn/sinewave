@@ -29,6 +29,7 @@ interval_tvmap = {
     "30m": Interval.in_30_minute,
     "1h": Interval.in_1_hour,
     "4h": Interval.in_4_hour,
+    "8h": Interval.in_8_hour,
     "1d": Interval.in_daily,
     "1w": Interval.in_weekly,
     "1M": Interval.in_monthly
