@@ -19,7 +19,7 @@ selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "
 n_bars = st.sidebar.number_input("Number of Bars", value=360, min_value=10, max_value=1000, step=10)
 
 selected_intervals = st.sidebar.multiselect(
-    "Select Timeframes", options=["1d", "8h", "4h", "1h", "30m"], default=["4h", "1h", "30m"]
+    "Select Timeframes", options=["1d", "4h", "1h", "30m"], default=["4h", "1h", "30m"]
 )
 
 # --- Define Variables based on inputs ---
@@ -30,7 +30,7 @@ interval_tvmap = {
     "30m": Interval.in_30_minute,
     "1h": Interval.in_1_hour,
     "4h": Interval.in_4_hour,
-    "8h": Interval.in_8_hour,
+    # "8h": Interval.in_8_hour,
     "1d": Interval.in_daily,
     "1w": Interval.in_weekly,
     "1M": Interval.in_monthly
