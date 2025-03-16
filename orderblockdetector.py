@@ -300,7 +300,7 @@ def create_bull_plotbands(bull_list):
 
 def create_bear_series(bear_list, last_candle, bar_interval=3600000):
     # Compute the common right boundary from the last bear's timestamp plus margin.
-    right_boundary = int(last_candle.timestamp() * 1000) + (bar_interval)
+    right_boundary = int(last_candle.timestamp() * 1000)
     series_data = []
     for bear in bear_list:
         # Convert the bear_left timestamp to milliseconds for the left boundary.
@@ -332,7 +332,7 @@ def create_bear_series(bear_list, last_candle, bar_interval=3600000):
 
 def create_bull_series(bull_list, last_candle, bar_interval=3600000):
     # Compute the common right boundary from the last bull's timestamp plus margin.
-    right_boundary = int(last_candle.timestamp() * 1000) + (bar_interval)
+    right_boundary = int(last_candle.timestamp() * 1000)
     
     series_data = []
     for bull in bull_list:

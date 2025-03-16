@@ -5,6 +5,7 @@ from tvDatafeed import TvDatafeed, Interval
 from highcharts_stock.chart import Chart
 from orderblockdetector import *
 import pprint
+import time
     
 tv = TvDatafeed()
 
@@ -41,15 +42,25 @@ interval_tvmap = {
 # selected_timeframe, and selected_intervals are defined elsewhere.
 
 # Fetch historical data only once.
-historical_data = tv.get_hist(
-                        symbol=selected_ticker,
-                        exchange="BINANCE",
-                        interval=interval_tvmap[selected_timeframe],
-                        n_bars=n_bars
-                        )     
+attempt = 0
+historical_data = None
+max_retries = 3
+while attempt < max_retries:
+    try:
+        historical_data = tv.get_hist(
+            symbol=selected_ticker,
+            exchange="BINANCE",
+            interval=interval_tvmap[selected_timeframe],
+            n_bars=n_bars
+        )
+        historical_data['time'] = historical_data.index
+        break
+    except Exception as e:
+        attempt += 1
+        print(f"Attempt {attempt} for {selected_ticker} failed: {e}")
+        time.sleep(1)
 
 data = historical_data
-data['time'] = data.index
 
 # Detect order blocks on the fetched data.
 df_with_ob, active_bull_OB, active_bear_OB = detect_order_blocks(
@@ -73,6 +84,7 @@ interval_map = {
 # --- Create default series for the selected timeframe ---
 bear_bands_series = create_bear_series(active_bear_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 bull_bands_series = create_bull_series(active_bull_OB, last_candle, bar_interval=interval_map[selected_timeframe])
+# pprint.pprint(bear_bands_series)
 
 # --- Build output list for candlestick chart ---
 # Each entry is [timestamp_millis, open, high, low, close, volume].
@@ -111,13 +123,22 @@ if selected_intervals:
         
         # Optionally, if your application requires data re-aggregation per timeframe,
         # modify or aggregate 'data' here. Otherwise, you can reuse the same data.
-        data_tf = tv.get_hist(
-                                symbol=selected_ticker,
-                                exchange="BINANCE",
-                                interval=interval_tvmap[interval],
-                                n_bars=n_bars
-                                )  
-        data_tf['time'] = data_tf.index
+        attempt = 0
+        data_tf = None
+        while attempt < max_retries:
+            try:
+                data_tf = tv.get_hist(
+                    symbol=selected_ticker,
+                    exchange="BINANCE",
+                    interval=interval_tvmap[interval],
+                    n_bars=n_bars
+                )
+                data_tf['time'] = data_tf.index
+                break
+            except Exception as e:
+                attempt += 1
+                print(f"Attempt {attempt} for {selected_ticker} failed: {e}")
+                time.sleep(1)
 
         # Recalculate the order blocks using the same data_tf for demonstration.
         df_with_ob_tf, active_bull_OB_tf, active_bear_OB_tf = detect_order_blocks(
@@ -134,7 +155,7 @@ if selected_intervals:
         
         bear_series_list.append(bear_series)
         bull_series_list.append(bull_series)
-
+        
     all_stacked_bull = find_all_stacked_points(bull_series_list)
     all_stacked_bull_1 = [(x, max(pair), c) for x, pair, c in all_stacked_bull]
     
@@ -186,7 +207,7 @@ if selected_intervals:
     }
         
     plotLines = {'plotLines': plotLines_bull['plotLines'] + plotLines_bear['plotLines']}
-
+    plotLines.update({'offset': 30, 'startOnTick': False, 'endOnTick': False})
     
     # Build the series list using the candlestick series plus our multi-interval series.
     chart_series = [{
@@ -226,22 +247,46 @@ chart_options = {
             'upColor': 'rgba(255, 255, 255, 0.5)',  # Bullish candle color
             'lineColor': '#000000',  # Border color for bearish candles
             'upLineColor': '#000000',  # Border color for bullish candles
-            # 'dragDrop': {
-            #     'draggableX': True,  # Allow dragging along the x-axis
-            #     'draggableY': True  # Disable dragging along the y-axis
-            # }
         }
     },
+    'chart': {
+        'zooming': {
+            'type': 'xy',
+        },
+        # 'panning': True,
+        # 'panKey': 'shift'
+    },
     'rangeSelector': {
-        'selected': 4
+        'buttons': [{
+            'type': 'day',
+            'count': 3,
+            'text': '3d'
+        }, {
+            'type': 'day',
+            'count': 7,
+            'text': '7d'
+        }, {
+            'type': 'month',
+            'count': 1,
+            'text': 'M'
+        }, {
+            'type': 'all',
+            'count': 1,
+            'text': 'All'
+        }, {
+        }],
+        'selected': 1
     },
     'title': {
         'text': f'{selected_ticker}'
     },
-    # 'xAxis': {
-        # 'overscroll': interval_map[selected_timeframe] * 30,
-    # },
-    'yAxis': plotLines if selected_intervals else '',
+    'xAxis': {
+        'startOnTick': False,
+        'endOnTick': False,
+        'overscroll': interval_map[selected_timeframe] * 30,
+    },
+    'yAxis': plotLines if selected_intervals else {'offset': 30, 'startOnTick': False, 'endOnTick': False},
+    
     'navigator': {
         'enabled': True
     },
