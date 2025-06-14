@@ -5,3 +5,4 @@ pandas
 git+https://github.com/rongardF/tvdatafeed.git
 highcharts-stock
 python-binance
+st-copy-to-clipboard

@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from st_copy_to_clipboard import st_copy_to_clipboard
 import pandas as pd
 from tvDatafeed import TvDatafeed, Interval
 from highcharts_stock.chart import Chart
@@ -14,13 +15,16 @@ tv = TvDatafeed()
 st.set_page_config(layout="wide")
 placeholder = st.empty()
 # --- Sidebar Inputs ---
-selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT", "SOLUSDT", "ETHUSDT", "SUIUSDT"], index=0)
-selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "1h", "30m"], index=5)
+selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT","BTCUSDC","BTCUSD", "SOLUSDC", "ETHUSDC", "SUIUSDC"], index=0)
+exchange = st.sidebar.selectbox("Exchange", options=["BINANCE" , "VANTAGE"], index=0)
+selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "1h", "30m"], index=2)
 n_bars = st.sidebar.number_input("Number of Bars", value=360, min_value=10, max_value=1000, step=10)
 
 selected_intervals = st.sidebar.multiselect(
-    "Select Timeframes", options=["1d", "4h", "1h", "30m"], default=["4h", "1h", "30m"]
+    "Select Timeframes", options=["1d", "8h", "4h", "1h", "30m"], default=["8h", "4h"]
 )
+selected_ob_length = st.sidebar.multiselect(
+    "OB Length", options =[1,2,3,4,5,6,7], default=[2])
 
 # --- Define Variables based on inputs ---
 symbols = [selected_ticker]
@@ -30,7 +34,7 @@ interval_tvmap = {
     "30m": Interval.in_30_minute,
     "1h": Interval.in_1_hour,
     "4h": Interval.in_4_hour,
-    # "8h": Interval.in_8_hour,
+    "8h": Interval.in_4_hour,
     "1d": Interval.in_daily,
     "1w": Interval.in_weekly,
     "1M": Interval.in_monthly
@@ -53,6 +57,16 @@ while attempt < max_retries:
             interval=interval_tvmap[selected_timeframe],
             n_bars=n_bars
         )
+        if selected_timeframe == '8h':
+            historical_data = historical_data.resample('8h', origin='07:00').agg({
+                                    'symbol': 'first',
+                                    'open': 'first',
+                                    'high': 'max',
+                                    'low': 'min',
+                                    'close': 'last',
+                                    'volume': 'sum'
+                                })
+        
         historical_data['time'] = historical_data.index
         break
     except Exception as e:
@@ -60,13 +74,12 @@ while attempt < max_retries:
         print(f"Attempt {attempt} for {selected_ticker} failed: {e}")
         time.sleep(1)
 
-data = historical_data
+data = historical_data  # no volume data
 
 # Detect order blocks on the fetched data.
 df_with_ob, active_bull_OB, active_bear_OB = detect_order_blocks(
-    data, length=3, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
+    data, length=2, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
 )
-
 # Determine the last candle time from the data.
 last_candle = data['time'].iloc[-1]
 
@@ -84,7 +97,8 @@ interval_map = {
 # --- Create default series for the selected timeframe ---
 bear_bands_series = create_bear_series(active_bear_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 bull_bands_series = create_bull_series(active_bull_OB, last_candle, bar_interval=interval_map[selected_timeframe])
-# pprint.pprint(bear_bands_series)
+pprint.pprint(active_bear_OB)
+
 
 # --- Build output list for candlestick chart ---
 # Each entry is [timestamp_millis, open, high, low, close, volume].
@@ -118,43 +132,53 @@ if selected_intervals:
     
     # Loop over the selected intervals to create series with unique visual properties.
     for idx, interval in enumerate(selected_intervals):
-        # Get the corresponding bar interval value.
-        bar_interval_val = interval_map[interval]
-        
-        # Optionally, if your application requires data re-aggregation per timeframe,
-        # modify or aggregate 'data' here. Otherwise, you can reuse the same data.
-        attempt = 0
-        data_tf = None
-        while attempt < max_retries:
-            try:
-                data_tf = tv.get_hist(
-                    symbol=selected_ticker,
-                    exchange="BINANCE",
-                    interval=interval_tvmap[interval],
-                    n_bars=n_bars
-                )
-                data_tf['time'] = data_tf.index
-                break
-            except Exception as e:
-                attempt += 1
-                print(f"Attempt {attempt} for {selected_ticker} failed: {e}")
-                time.sleep(1)
-
-        # Recalculate the order blocks using the same data_tf for demonstration.
-        df_with_ob_tf, active_bull_OB_tf, active_bear_OB_tf = detect_order_blocks(
-            data_tf, length=3, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
-        )
-        
-        # Create bear and bull series for the current interval using the last 3 elements.
-        bear_series = create_bear_series(active_bear_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
-        bull_series = create_bull_series(active_bull_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
-        
-        # Set fill colors and line colors based on the interval.
-        bear_series['color'] = bear_color_map.get(interval, 'rgba(0, 0, 0, 0)')
-        bull_series['color'] = bull_color_map.get(interval, 'rgba(0, 0, 0, 0)')
-        
-        bear_series_list.append(bear_series)
-        bull_series_list.append(bull_series)
+        for ob_length in selected_ob_length:
+            # Get the corresponding bar interval value.
+            bar_interval_val = interval_map[interval]
+            
+            # Optionally, if your application requires data re-aggregation per timeframe,
+            # modify or aggregate 'data' here. Otherwise, you can reuse the same data.
+            attempt = 0
+            data_tf = None
+            while attempt < max_retries:
+                try:
+                    data_tf = tv.get_hist(
+                        symbol=selected_ticker,
+                        exchange=exchange,
+                        interval=interval_tvmap[interval],
+                        n_bars=n_bars
+                    )
+                    if interval == '8h':
+                        data_tf = historical_data.resample('8h', origin='07:00').agg({
+                                                'symbol': 'first',
+                                                'open': 'first',
+                                                'high': 'max',
+                                                'low': 'min',
+                                                'close': 'last',
+                                                'volume': 'sum'
+                                            })
+                    data_tf['time'] = data_tf.index
+                    break
+                except Exception as e:
+                    attempt += 1
+                    print(f"Attempt {attempt} for {selected_ticker} failed: {e}")
+                    time.sleep(1)
+            
+            # Recalculate the order blocks using the same data_tf for demonstration.
+            df_with_ob_tf, active_bull_OB_tf, active_bear_OB_tf = detect_order_blocks(
+                data_tf, length=ob_length, bull_ext_last=ob_length, bear_ext_last=ob_length, mitigation='Wick'
+            )
+            
+            # Create bear and bull series for the current interval using the last 3 elements.
+            bear_series = create_bear_series(active_bear_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
+            bull_series = create_bull_series(active_bull_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
+            
+            # Set fill colors and line colors based on the interval.
+            bear_series['color'] = bear_color_map.get(interval, 'rgba(0, 0, 0, 0)')
+            bull_series['color'] = bull_color_map.get(interval, 'rgba(0, 0, 0, 0)')
+            
+            bear_series_list.append(bear_series)
+            bull_series_list.append(bull_series)
         
     all_stacked_bull = find_all_stacked_points(bull_series_list)
     all_stacked_bull_1 = [(x, max(pair), c) for x, pair, c in all_stacked_bull]
@@ -275,7 +299,7 @@ chart_options = {
             'text': 'All'
         }, {
         }],
-        'selected': 1
+        'selected': 3
     },
     'title': {
         'text': f'{selected_ticker}'
@@ -325,3 +349,6 @@ components.html(html_template, height=700, scrolling=False)
 
 
 placeholder.empty()
+
+
+st.code(active_bear_OB[0]['bear_btm'], language='python')

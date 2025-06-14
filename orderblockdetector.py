@@ -237,32 +237,6 @@ def find_all_stacked_points(resp):
     
     return result
 
-# Example usage:
-# resp = [{'name': 'Polygons', 'type': 'polygon', 'data': [
-#     [1738540800000, 96865.505], [1741910400000, 96865.505],
-#     [1741910400000, 102500.01], [1738540800000, 102500.01],
-#     [1741910400000, None],
-#     [1740096000000, 97173.475], [1741910400000, 97173.475],
-#     [1741910400000, 99475.0], [1740096000000, 99475.0],
-#     [1741910400000, None],
-#     [1741305600000, 87975.025], [1741910400000, 87975.025],
-#     [1741910400000, 91283.02], [1741305600000, 91283.02],
-#     [1741910400000, None]
-# ], 'color': 'rgba(187, 187, 187, 0.3)', 'lineColor': '#f70b0b', 'lineWidth': 1.5,
-#     'enableMouseTracking': False, 'tooltip': {'pointFormat': 'Polygon area'}}]
-
-# all_stacked = find_all_stacked_points(resp)
-# for count, interval, intercept in all_stacked:
-#     print(f"Overlap Count: {count}, Interval: {interval}, Intercept: {intercept}")
-
-
-# Example usage:
-# resp = [ { ... }, { ... } ]  # your list of polygon dictionaries
-# all_stacked = find_all_stacked_points(resp)
-# for count, interval, intercept in all_stacked:
-#     print(f"Overlap Count: {count}, Interval: {interval}, Intercept: {intercept}")
-
-
 
 def create_bear_plotbands(bear_list):
     plotbands = []

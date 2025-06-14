@@ -14,13 +14,24 @@ client = Client()
 st.set_page_config(layout="wide")
 placeholder = st.empty()
 # --- Sidebar Inputs ---
-selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT", "SOLUSDT", "ETHUSDT", "SUIUSDT"], index=0)
-selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "1h", "30m"], index=5)
+# selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT", "SOLUSDT", "ETHUSDT", "SUIUSDT"], index=0)
+ticker_list = ["BTCUSDT", "SOLUSDT", "ETHUSDT", "SUIUSDT"]
+# Provide a text input for a custom ticker
+custom_ticker = st.sidebar.text_input("Enter a ticker (optional):")
+# If a custom ticker is entered, use that; otherwise, let the user select from the list.
+if custom_ticker:
+    selected_ticker = custom_ticker
+else:
+    selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=ticker_list, index=0)
+
+selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "1h", "30m"], index=2)
 n_bars = st.sidebar.number_input("Number of Bars", value=360, min_value=10, max_value=1000, step=10)
 
 selected_intervals = st.sidebar.multiselect(
-    "Select Timeframes", options=["1d", "8h", "4h", "1h", "30m"], default=["4h", "1h", "30m"]
+    "Select Timeframes", options=["1d", "8h", "4h", "1h", "30m"], default=["1d", "8h", "4h"]
 )
+selected_ob_length = st.sidebar.multiselect(
+    "OB Length", options =[1,2,3,4,5,6,7], default=[1,2,3,4,5,6,7])
 
 # --- Define Variables based on inputs ---
 symbols = [selected_ticker]
@@ -126,16 +137,16 @@ historical_data = get_historical_data(symbols, intervals, limit=n_bars, save_pat
 data = historical_data[selected_ticker].astype(float)
 data['time'] = data.index
 
-# Detect order blocks on the fetched data.
+# # Detect order blocks on the fetched data.
 df_with_ob, active_bull_OB, active_bear_OB = detect_order_blocks(
     data, length=3, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
 )
 
-# Determine the last candle time from the data.
+# # Determine the last candle time from the data.
 last_candle = data['time'].iloc[-1]
 
-# --- Define interval mapping ---
-# Map timeframe strings to their respective bar interval in milliseconds.
+# # --- Define interval mapping ---
+# # Map timeframe strings to their respective bar interval in milliseconds.
 interval_map = {
     '30m': 30 * 60 * 1000,
     '1h': 3600000,
@@ -145,12 +156,12 @@ interval_map = {
     '1w': 7 * 24 * 3600000,
 }
 
-# --- Create default series for the selected timeframe ---
+# # --- Create default series for the selected timeframe ---
 bear_bands_series = create_bear_series(active_bear_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 bull_bands_series = create_bull_series(active_bull_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 
-# --- Build output list for candlestick chart ---
-# Each entry is [timestamp_millis, open, high, low, close, volume].
+# # --- Build output list for candlestick chart ---
+# # Each entry is [timestamp_millis, open, high, low, close, volume].
 output_list = []
 for idx, row in data.iterrows():
     ts_millis = int(idx.timestamp() * 1000)
@@ -181,30 +192,31 @@ if selected_intervals:
     
     # Loop over the selected intervals to create series with unique visual properties.
     for idx, interval in enumerate(selected_intervals):
-        # Get the corresponding bar interval value.
-        bar_interval_val = interval_map[interval]
+        for ob_length in selected_ob_length:
+            # Get the corresponding bar interval value.
+            bar_interval_val = interval_map[interval]
         
-        # Optionally, if your application requires data re-aggregation per timeframe,
-        # modify or aggregate 'data' here. Otherwise, you can reuse the same data.
-        historical_data_tf = get_historical_data(symbols, [interval], limit=n_bars, save_path=None)
-        data_tf = historical_data_tf[selected_ticker].astype(float)
-        data_tf['time'] = data_tf.index
+            # Optionally, if your application requires data re-aggregation per timeframe,
+            # modify or aggregate 'data' here. Otherwise, you can reuse the same data.
+            historical_data_tf = get_historical_data(symbols, [interval], limit=n_bars, save_path=None)
+            data_tf = historical_data_tf[selected_ticker].astype(float)
+            data_tf['time'] = data_tf.index
         
-        # Recalculate the order blocks using the same data_tf for demonstration.
-        df_with_ob_tf, active_bull_OB_tf, active_bear_OB_tf = detect_order_blocks(
-            data_tf, length=3, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
-        )
+            # Recalculate the order blocks using the same data_tf for demonstration.
+            df_with_ob_tf, active_bull_OB_tf, active_bear_OB_tf = detect_order_blocks(
+                data_tf, length=ob_length, bull_ext_last=3, bear_ext_last=3, mitigation='Wick'
+            )
         
-        # Create bear and bull series for the current interval using the last 3 elements.
-        bear_series = create_bear_series(active_bear_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
-        bull_series = create_bull_series(active_bull_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
+            # Create bear and bull series for the current interval using the last 3 elements.
+            bear_series = create_bear_series(active_bear_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
+            bull_series = create_bull_series(active_bull_OB_tf[-3:], last_candle, bar_interval=bar_interval_val)
         
-        # Set fill colors and line colors based on the interval.
-        bear_series['color'] = bear_color_map.get(interval, 'rgba(0, 0, 0, 0)')
-        bull_series['color'] = bull_color_map.get(interval, 'rgba(0, 0, 0, 0)')
+            # Set fill colors and line colors based on the interval.
+            bear_series['color'] = bear_color_map.get(interval, 'rgba(0, 0, 0, 0)')
+            bull_series['color'] = bull_color_map.get(interval, 'rgba(0, 0, 0, 0)')
         
-        bear_series_list.append(bear_series)
-        bull_series_list.append(bull_series)
+            bear_series_list.append(bear_series)
+            bull_series_list.append(bull_series)
 
     all_stacked_bull = find_all_stacked_points(bull_series_list)
     all_stacked_bull_1 = [(x, max(pair), c) for x, pair, c in all_stacked_bull]
@@ -228,7 +240,7 @@ if selected_intervals:
                 'zIndex': 3,
                 'label': {
                     # Use the start of the interval (first value in the tuple) for the label.
-                    'text': f'{int(interval[1])} ({interval[0]})',
+                    'text': f'{round(interval[1],2)} ({interval[0]})',
                     'align': 'left',
                     'x': 0
                 }
@@ -247,7 +259,7 @@ if selected_intervals:
                 'zIndex': 3,
                 'label': {
                     # Use the start of the interval (first value in the tuple) for the label.
-                    'text': f'{int(interval[1])} ({interval[0]})',
+                    'text': f'{round(interval[1],2)} ({interval[0]})',
                     'align': 'left',
                     'x': 0
                 }
@@ -257,7 +269,7 @@ if selected_intervals:
     }
         
     plotLines = {'plotLines': plotLines_bull['plotLines'] + plotLines_bear['plotLines']}
-
+    plotLines.update({'offset': 30, 'startOnTick': False, 'endOnTick': False})
     
     # Build the series list using the candlestick series plus our multi-interval series.
     chart_series = [{
@@ -297,22 +309,46 @@ chart_options = {
             'upColor': 'rgba(255, 255, 255, 0.5)',  # Bullish candle color
             'lineColor': '#000000',  # Border color for bearish candles
             'upLineColor': '#000000',  # Border color for bullish candles
-            # 'dragDrop': {
-            #     'draggableX': True,  # Allow dragging along the x-axis
-            #     'draggableY': True  # Disable dragging along the y-axis
-            # }
         }
     },
+    'chart': {
+        'zooming': {
+            'type': 'xy',
+        },
+        # 'panning': True,
+        # 'panKey': 'shift'
+    },
     'rangeSelector': {
-        'selected': 4
+        'buttons': [{
+            'type': 'day',
+            'count': 3,
+            'text': '3d'
+        }, {
+            'type': 'day',
+            'count': 7,
+            'text': '7d'
+        }, {
+            'type': 'month',
+            'count': 1,
+            'text': 'M'
+        }, {
+            'type': 'all',
+            'count': 1,
+            'text': 'All'
+        }, {
+        }],
+        'selected': 3
     },
     'title': {
         'text': f'{selected_ticker}'
     },
     'xAxis': {
+        'startOnTick': False,
+        'endOnTick': False,
         'overscroll': interval_map[selected_timeframe] * 30,
     },
-    'yAxis': plotLines if selected_intervals else '',
+    'yAxis': plotLines if selected_intervals else {'offset': 30, 'startOnTick': False, 'endOnTick': False},
+    
     'navigator': {
         'enabled': True
     },
