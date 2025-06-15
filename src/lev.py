@@ -30,6 +30,7 @@ maint_sol = [
 ]
 
 maint_table = {
+    "BTCUSD": maint_btc,
     "BTCUSDC": maint_btc,
     "BTCUSDT": maint_btc,
     "SOLUSDC": maint_sol,

@@ -352,64 +352,34 @@ placeholder.empty()
 
 
 
-st.markdown("##### :red[Bear] | SL")
-col1_1, col1_2 = st.columns(2)
 import math
+from src.lev import binance_leverage_custom
 
-with col1_1:
-    if len(active_bear_OB) > 0 and active_bear_OB[0] is not None:
-        bear_btm_val = active_bear_OB[0].get('bear_btm', 'No data for bear_btm') if isinstance(active_bear_OB[0], dict) else 'No data for bear_btm'
-        if isinstance(bear_btm_val, (int, float)):
-            st.code(math.ceil(bear_btm_val), language='python')
-        else:
-            st.code(bear_btm_val, language='python')
-    if len(active_bear_OB) > 1 and active_bear_OB[1] is not None:
-        bear_btm_val_1 = active_bear_OB[1].get('bear_btm', 'No data for bear_btm') if isinstance(active_bear_OB[1], dict) else 'No data for bear_btm'
-        if isinstance(bear_btm_val_1, (int, float)):
-            st.code(math.ceil(bear_btm_val_1), language='python')
-        else:
-            st.code(bear_btm_val_1, language='python')
+def display_ob_values(title, ob_list, keys, color, ac):
+    col1, col2, col3 = st.columns(3)
+    # Display up to 3 OBs, one per column
+    for i, col in enumerate([col1, col2, col3]):
+        if i < len(ob_list):
+            ob = ob_list[i]
+            if ob and isinstance(ob, dict):
+                val = ob.get(keys[0], 'No data')
+                sl = ob.get(keys[1], 'No data')
+                action='LONG' if ac=='LONG' else 'SHORT'
+                lev = int(binance_leverage_custom(sl, val, 20, action, selected_ticker))
+                with col:
+                    st.markdown(f"###### <span style='color:{color}'>{title}</span> | SL ({i}) -x{lev}", unsafe_allow_html=True)
+                    
+                    if isinstance(val, (int, float)):
+                        st.code(f"{math.ceil(val) if color == 'red' else math.floor(val)}", language='python')
+                    else:
+                        st.code(f"{val}", language='python')
+                    if isinstance(sl, (int, float)):
+                        st.code(f"{math.ceil(sl) if color == 'red' else math.floor(sl)}", language='python')
+                    else:
+                        st.code(f"{sl}", language='python')
+                        
+                    
 
-with col1_2:
-    if len(active_bear_OB) > 0 and active_bear_OB[0] is not None:
-        bear_top_val = active_bear_OB[0].get('bear_top', 'No data for bear_top') if isinstance(active_bear_OB[0], dict) else 'No data for bear_top'
-        if isinstance(bear_top_val, (int, float)):
-            st.code(math.ceil(bear_top_val), language='python')
-        else:
-            st.code(bear_top_val, language='python')
-    if len(active_bear_OB) > 1 and active_bear_OB[1] is not None:
-        bear_top_val_1 = active_bear_OB[1].get('bear_top', 'No data for bear_top') if isinstance(active_bear_OB[1], dict) else 'No data for bear_top'
-        if isinstance(bear_top_val_1, (int, float)):
-            st.code(math.ceil(bear_top_val_1), language='python')
-        else:
-            st.code(bear_top_val_1, language='python')
 
-st.markdown("##### :green[Bull] | SL")
-col2_1, col2_2 = st.columns(2)
-with col2_1:
-    if len(active_bull_OB) > 0 and active_bull_OB[-1] is not None:
-        bull_top_val = active_bull_OB[-1].get('bull_top', 'No data for bull_top') if isinstance(active_bull_OB[-1], dict) else 'No data for bull_top'
-        if isinstance(bull_top_val, (int, float)):
-            st.code(math.floor(bull_top_val), language='python')
-        else:
-            st.code(bull_top_val, language='python')
-    if len(active_bull_OB) > 1 and active_bull_OB[-2] is not None:
-        bull_top_val_1 = active_bull_OB[-2].get('bull_top', 'No data for bull_top') if isinstance(active_bull_OB[-2], dict) else 'No data for bull_top'
-        if isinstance(bull_top_val_1, (int, float)):
-            st.code(math.floor(bull_top_val_1), language='python')
-        else:
-            st.code(bull_top_val_1, language='python')
-
-with col2_2:
-    if len(active_bull_OB) > 0 and active_bull_OB[-1] is not None:
-        bull_btm_val = active_bull_OB[-1].get('bull_btm', 'No data for bull_btm') if isinstance(active_bull_OB[-1], dict) else 'No data for bull_btm'
-        if isinstance(bull_btm_val, (int, float)):
-            st.code(math.floor(bull_btm_val), language='python')
-        else:
-            st.code(bull_btm_val, language='python')
-    if len(active_bull_OB) > 1 and active_bull_OB[-2] is not None:
-        bull_btm_val_1 = active_bull_OB[-2].get('bull_btm', 'No data for bull_btm') if isinstance(active_bull_OB[-2], dict) else 'No data for bull_btm'
-        if isinstance(bull_btm_val_1, (int, float)):
-            st.code(math.floor(bull_btm_val_1), language='python')
-        else:
-            st.code(bull_btm_val_1, language='python')
+display_ob_values("Bear", active_bear_OB[::-1], ["bear_btm", "bear_top"], "red", "SHORT")
+display_ob_values("Bull", active_bull_OB[::-1], ["bull_top", "bull_btm"], "green", "LONG")
