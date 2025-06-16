@@ -271,6 +271,7 @@ chart_options = {
             'upColor': 'rgba(255, 255, 255, 0.5)',  # Bullish candle color
             'lineColor': '#000000',  # Border color for bearish candles
             'upLineColor': '#000000',  # Border color for bullish candles
+
         }
     },
     'chart': {
@@ -373,10 +374,10 @@ def display_ob_values(title, ob_list, keys, color, ac):
                         st.code(f"{math.ceil(val) if color == 'red' else math.floor(val)}", language='python')
                     else:
                         st.code(f"{val}", language='python')
-                    if isinstance(sl, (int, float)):
-                        st.code(f"{math.ceil(sl) if color == 'red' else math.floor(sl)}", language='python')
-                    else:
-                        st.code(f"{sl}", language='python')
+                    # if isinstance(sl, (int, float)):
+                    #     st.code(f"{math.ceil(sl) if color == 'red' else math.floor(sl)}", language='python')
+                    # else:
+                    #     st.code(f"{sl}", language='python')
                         
                     
 
