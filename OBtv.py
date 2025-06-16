@@ -117,17 +117,17 @@ if selected_intervals:
     # Define color mapping for each interval for bear and bull series.
     bear_color_map = {
         '1d': 'rgba(187, 187, 187, 0.3)',
-        '8h': 'rgba(104, 137, 255, 0.3)',
-        '4h': 'rgba(255, 0, 0, 0.15)',
-        '1h': 'rgba(6, 108, 48, 0.3)', 
-        '30m': 'rgba(139, 0, 0, 0.5)' 
+        '8h': 'rgba(143, 165, 247, 0.22)',
+        '4h': 'rgba(255, 0, 0, 0.12)',
+        '1h': 'rgba(6, 108, 48, 0.2)', 
+        '30m': 'rgba(45, 107, 6, 0.2)' 
     }
     bull_color_map = {
         '1d': 'rgba(187, 187, 187, 0.3)',
-        '8h': 'rgba(104, 137, 255, 0.3)',
-        '4h': 'rgba(255, 0, 0, 0.15)',
-        '1h': 'rgba(6, 108, 48, 0.3)',
-        '30m': 'rgba(139, 0, 0, 0.5)' 
+        '8h': 'rgba(143, 165, 247, 0.22)',
+        '4h': 'rgba(255, 0, 0, 0.12)',
+        '1h': 'rgba(6, 108, 48, 0.2)',
+        '30m': 'rgba(45, 107, 6, 0.2)' 
     }
     
     # Loop over the selected intervals to create series with unique visual properties.
