@@ -4,7 +4,7 @@ import pandas as pd
 from tvDatafeed import TvDatafeed, Interval
 from highcharts_stock.chart import Chart
 from orderblockdetector import *
-import pprint
+# import pprint
 import time
     
 tv = TvDatafeed()
@@ -14,8 +14,13 @@ tv = TvDatafeed()
 st.set_page_config(layout="wide")
 placeholder = st.empty()
 # --- Sidebar Inputs ---
-selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT","BTCUSDC","BTCUSD", "SOLUSDC", "ETHUSDC", "SUIUSDC"], index=0)
-exchange = st.sidebar.selectbox("Exchange", options=["BINANCE" , "VANTAGE"], index=0)
+custom_ticker = st.sidebar.text_input("Enter a ticker (optional):")
+
+if custom_ticker:
+    selected_ticker = custom_ticker
+else:
+    selected_ticker = st.sidebar.selectbox("Ticker Symbol", options=["BTCUSDT","BTCUSDC","BTCUSD", "SOLUSDC", "ETHUSDC", "SUIUSDC", "XAUUSD", "GC1!"], index=0)
+exchange = st.sidebar.selectbox("Exchange", options=["BINANCE" , "VANTAGE", "OANDA", "COMEX"], index=0)
 selected_timeframe = st.sidebar.selectbox("Timeframe", ["1w","1d", "8h", "4h", "1h", "30m"], index=2)
 n_bars = st.sidebar.number_input("Number of Bars", value=360, min_value=10, max_value=1000, step=10)
 
@@ -52,7 +57,7 @@ while attempt < max_retries:
     try:
         historical_data = tv.get_hist(
             symbol=selected_ticker,
-            exchange="BINANCE",
+            exchange=exchange,
             interval=interval_tvmap[selected_timeframe],
             n_bars=n_bars
         )
@@ -94,11 +99,9 @@ interval_map = {
 }
 
 # --- Create default series for the selected timeframe ---
-if active_bear_OB:
-    bear_bands_series = create_bear_series(active_bear_OB, last_candle, bar_interval=interval_map[selected_timeframe])
-if active_bull_OB:
-    bull_bands_series = create_bull_series(active_bull_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 
+bear_bands_series = create_bear_series(active_bear_OB, last_candle, bar_interval=interval_map[selected_timeframe])
+bull_bands_series = create_bull_series(active_bull_OB, last_candle, bar_interval=interval_map[selected_timeframe])
 
 # --- Build output list for candlestick chart ---
 # Each entry is [timestamp_millis, open, high, low, close, volume].
@@ -354,7 +357,9 @@ placeholder.empty()
 
 
 import math
-from src.lev import binance_leverage_custom
+from src.lev import *
+
+pcs = token_info[selected_ticker].get('pricePrecision')
 
 def display_ob_values(title, ob_list, keys, color, ac):
     col1, col2, col3 = st.columns(3)
@@ -365,22 +370,50 @@ def display_ob_values(title, ob_list, keys, color, ac):
             if ob and isinstance(ob, dict):
                 val = ob.get(keys[0], 'No data')
                 sl = ob.get(keys[1], 'No data')
-                action='LONG' if ac=='LONG' else 'SHORT'
-                lev = int(binance_leverage_custom(sl, val, 20, action, selected_ticker))
+                L = int(binance_leverage_custom(
+                    liq_price=sl,
+                    entry_price=val,
+                    wallet_balance=1000,
+                    side=ac,
+                    symbol=selected_ticker,
+                    bracket_data=futures_bracket
+                ))
                 with col:
-                    st.markdown(f"###### <span style='color:{color}'>{title}</span> | SL ({i}) -x{lev}", unsafe_allow_html=True)
+                    st.markdown(f"###### <span style='color:{color}'>{title}</span> | SL ({i}) -x{L}", unsafe_allow_html=True)
                     
                     if isinstance(val, (int, float)):
-                        st.code(f"{math.ceil(val) if color == 'red' else math.floor(val)}", language='python')
+                        st.code(f"{round(val, pcs) if color == 'red' else round(val, pcs)}", language='python')
                     else:
                         st.code(f"{val}", language='python')
-                    # if isinstance(sl, (int, float)):
-                    #     st.code(f"{math.ceil(sl) if color == 'red' else math.floor(sl)}", language='python')
-                    # else:
-                    #     st.code(f"{sl}", language='python')
                         
                     
+def custom_ob_value(title, val, sl, color, ac):
+    L = int(binance_leverage_custom(
+        liq_price=sl,
+        entry_price=val,
+        wallet_balance=1000,
+        side=ac,
+        symbol=selected_ticker,
+        bracket_data=futures_bracket
+    ))
+    st.markdown(f"###### <span style='color:{color}'>{title}</span> | Custom SL -x{L}", unsafe_allow_html=True)
+    if isinstance(val, (int, float)):
+        st.code(f"{round(val, pcs) if color == 'red' else round(val, pcs)}", language='python')
+    else:
+        st.code(f"{val}", language='python')
 
 
-display_ob_values("Bear", active_bear_OB[::-1], ["bear_btm", "bear_top"], "red", "SHORT")
-display_ob_values("Bull", active_bull_OB[::-1], ["bull_top", "bull_btm"], "green", "LONG")
+display_ob_values("Bear", active_bear_OB[::-1], ["bear_btm", "bear_top"], "red", "SELL")
+display_ob_values("Bull", active_bull_OB[::-1], ["bull_top", "bull_btm"], "green", "BUY")
+
+
+with st.form("custom_form"):
+    custom_val = st.text_input("Val:")
+    custom_sl  = st.text_input("SL:")
+    custom_ac  = st.selectbox("Action", ["BUY","SELL"], index=0)
+
+    # form_submit_button both displays and triggers
+    submitted = st.form_submit_button("Run")
+
+if submitted:
+    custom_ob_value("Custom", float(custom_val), float(custom_sl), "black", custom_ac)
