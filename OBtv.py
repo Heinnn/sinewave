@@ -416,4 +416,4 @@ with st.form("custom_form"):
     submitted = st.form_submit_button("Run")
 
 if submitted:
-    custom_ob_value("Custom", float(custom_val), float(custom_sl), "black", custom_ac)
+    custom_ob_value("Custom", float(custom_val), float(custom_sl), "blue", custom_ac)
